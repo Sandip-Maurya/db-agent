@@ -54,3 +54,4 @@ class QueryResult(BaseModel):
     rows: list[dict[str, Any]]
     row_count: int
     truncated: bool = False
+    execution_metadata: dict[str, Any] = Field(default_factory=dict)

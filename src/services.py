@@ -5,7 +5,7 @@ from .ports import DatabaseAdapter
 
 
 class SchemaExplorerService:
-    """Application service layer used by tool facades and later by the agent."""
+    """Application service layer used by tool facades and the agent."""
 
     def __init__(self, adapter: DatabaseAdapter) -> None:
         self.adapter = adapter

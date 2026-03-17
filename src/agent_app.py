@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import Any
 
 from pydantic_ai import Agent, RunContext
 
 from .agent_deps import AgentDeps
-from .agent_models import AgentAnswer, EvidenceItem
+from .agent_models import AgentAnswer
 
 BASE_INSTRUCTIONS = """
 You are a read-only database analyst.
@@ -39,53 +38,33 @@ def build_database_agent(model: Any | None = None) -> Agent[AgentDeps, AgentAnsw
             f"Max sample rows: {settings.max_sample_rows}. "
             f"Max rows per query: {settings.max_rows_per_query}. "
             "For schema questions, prefer list_tables, describe_table, and sample_rows. "
-            "For analytical questions, inspect metadata first and then use run_query if needed."
+            "For analytical questions, inspect metadata first and then use run_query if needed. "
+            "State clearly when tables appear unrelated or when the request cannot be answered from one database."
         )
 
     @agent.tool
     def list_tables(ctx: RunContext[AgentDeps]) -> dict[str, Any]:
         """List all accessible tables with brief descriptions and column names."""
+        ctx.deps.logger.info("tool=list_tables")
         return ctx.deps.facade.list_tables().model_dump()
 
     @agent.tool
     def describe_table(ctx: RunContext[AgentDeps], table_name: str) -> dict[str, Any]:
         """Describe one table, including columns, sample rows, and inferred metadata."""
+        ctx.deps.logger.info("tool=describe_table table=%s", table_name)
         return ctx.deps.facade.describe_table(table_name).model_dump()
 
     @agent.tool
     def sample_rows(ctx: RunContext[AgentDeps], table_name: str, limit: int = 5) -> dict[str, Any]:
         """Return a small sample of rows from a table to understand its contents."""
         safe_limit = min(max(1, limit), ctx.deps.settings.max_sample_rows)
+        ctx.deps.logger.info("tool=sample_rows table=%s limit=%s", table_name, safe_limit)
         return ctx.deps.facade.sample_rows(table_name, limit=safe_limit).model_dump()
 
     @agent.tool
     def run_query(ctx: RunContext[AgentDeps], sql: str) -> dict[str, Any]:
         """Execute a read-only SQL query after the application's safety policy validates it."""
+        ctx.deps.logger.info("tool=run_query sql=%s", sql.replace("\n", " "))
         return ctx.deps.facade.run_query(sql).model_dump()
 
     return agent
-
-
-def build_default_answer(
-    *,
-    question: str,
-    available_tables: Sequence[str],
-    sql: str | None = None,
-) -> AgentAnswer:
-    evidence = [
-        EvidenceItem(kind="tables", detail=", ".join(available_tables) or "no tables discovered"),
-    ]
-    if sql:
-        evidence.append(EvidenceItem(kind="query", detail=sql))
-
-    return AgentAnswer(
-        answer=(
-            "This is a placeholder answer shape for deterministic local testing. "
-            f"Question received: {question}"
-        ),
-        assumptions=["The demo database is representative of the target schema."],
-        evidence=evidence,
-        sql_executed=sql,
-        confidence="medium",
-        needs_followup=False,
-    )

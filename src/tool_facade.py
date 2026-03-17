@@ -11,11 +11,7 @@ from .tool_models import (
 
 
 class DatabaseToolFacade:
-    """Facade exposing narrow, agent-friendly database capabilities.
-
-    This layer gives us stable tool signatures now, and in Phase 3 the same
-    methods can be wrapped as Pydantic AI tools with minimal changes.
-    """
+    """Stable, agent-friendly facade over the application services."""
 
     def __init__(self, service: SchemaExplorerService) -> None:
         self.service = service

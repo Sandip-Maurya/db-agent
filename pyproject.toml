@@ -9,4 +9,5 @@ dependencies = [
   "pydantic-settings>=2.12",
   "pydantic-ai>=0.0.55",
   "python-dotenv>=1.2.2",
+  "sqlalchemy>=2.0.48",
 ]
