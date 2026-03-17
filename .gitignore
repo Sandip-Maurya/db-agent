@@ -12,3 +12,7 @@ wheels/
 # Ignore db files
 
 *.db
+
+
+# ignore .env
+.env
