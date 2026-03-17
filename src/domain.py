@@ -29,6 +29,15 @@ class TableProfile(BaseModel):
     sample_rows: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class TableSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    description: str | None = None
+    row_count_estimate: int | None = None
+    column_names: list[str] = Field(default_factory=list)
+
+
 class SchemaSnapshot(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pprint import pprint
 
-from db_agent_app import AppSettings, DatabaseToolFacade, SchemaExplorerService, create_database_adapter
+from src import AppSettings, DatabaseToolFacade, SchemaExplorerService, create_database_adapter
 
 
 def main() -> None:

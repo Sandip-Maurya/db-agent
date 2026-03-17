@@ -77,6 +77,13 @@ class SQLiteAdapter(DatabaseAdapter):
             tables=tables,
         )
 
+    def sample_rows(self, table_name: str, limit: int) -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            profile = conn.execute(f"PRAGMA table_info('{table_name}')").fetchall()
+            if not profile:
+                raise ValueError(f"Unknown table: {table_name}")
+            return self._sample_rows(conn, table_name, limit=min(limit, self.max_sample_rows))
+
     def execute_query(self, sql: str) -> QueryResult:
         self.safety_policy.validate_sql(sql)
         with self._connect() as conn:
