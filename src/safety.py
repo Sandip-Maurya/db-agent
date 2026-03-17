@@ -48,6 +48,7 @@ class QuerySafetyPolicy:
         return sql_with_limit
 
     def _ensure_limit(self, sql: str) -> str:
+        sql = sql.rstrip().rstrip(";").rstrip()
         lowered = sql.lower()
         if re.search(r"\blimit\s+\d+\b", lowered):
             return sql
