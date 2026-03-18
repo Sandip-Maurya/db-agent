@@ -15,6 +15,9 @@ class AgentApplication:
         return result.output
 
     def ask_with_test_model(self, question: str, *, call_tools: list[str] | str = "all") -> AgentAnswer:
+        if isinstance(call_tools, str) and call_tools != "all":
+                # Convert a single string into a list to satisfy the list[str] requirement
+                call_tools = [call_tools]        
         with self.container.agent.override(model=TestModel(call_tools=call_tools)):
             result = self.container.agent.run_sync(question, deps=self.container.deps)
         return result.output
