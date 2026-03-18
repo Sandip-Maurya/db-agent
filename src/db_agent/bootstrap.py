@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from typing import Any
-import os
+
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from .agent_app import build_database_agent
@@ -34,9 +35,6 @@ def configure_logging(settings: AppSettings) -> logging.Logger:
 
 def build_app_container(settings: AppSettings | None = None) -> AppContainer:
     settings = settings or AppSettings()
-    print(settings)
-    # print(os.getcwd())
-    # raise SystemExit()
     logger = configure_logging(settings)
     adapter = create_database_adapter(settings)
     service = SchemaExplorerService(adapter)

@@ -27,7 +27,7 @@ def get_application() -> AgentApplication:
     return AgentApplication(build_app_container())
 
 
-app = FastAPI(title="db-agent-app", version="0.4.0")
+app = FastAPI(title="db-agent", version="0.4.0")
 
 
 @app.get("/health")

@@ -69,7 +69,7 @@ class AppSettings(BaseSettings):
         env_file=".env"
     )
 
-    app_name: str = "db-agent-app"
+    app_name: str = "db-agent"
     environment: SupportedEnvironment = "dev"
     db: DatabaseSettings = DatabaseSettings()
     model: ModelSettings = ModelSettings()

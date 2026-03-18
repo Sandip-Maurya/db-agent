@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import uvicorn
 
-from src.api import app
-from src.config import AppSettings
+from db_agent.api import app
+from db_agent.config import AppSettings
 
 
 if __name__ == "__main__":
