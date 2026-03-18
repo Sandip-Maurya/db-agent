@@ -14,7 +14,7 @@ from .config import AppSettings
 from .factory import create_database_adapter
 from .services import SchemaExplorerService
 from .tool_facade import DatabaseToolFacade
-
+from x_model import model
 
 @dataclass(slots=True)
 class AppContainer:
@@ -40,5 +40,5 @@ def build_app_container(settings: AppSettings | None = None) -> AppContainer:
     service = SchemaExplorerService(adapter)
     facade = DatabaseToolFacade(service)
     deps = AgentDeps.from_facade(settings=settings, facade=facade, logger=logger)
-    agent = build_database_agent(model=settings.model.provider_model)
+    agent = build_database_agent(model=model)
     return AppContainer(settings=settings, agent=agent, deps=deps, facade=facade, service=service)
