@@ -18,3 +18,7 @@ wheels/
 .env
 
 db_agent.egg-info/
+
+# Exploratory files and folders
+x/
+x*.*
