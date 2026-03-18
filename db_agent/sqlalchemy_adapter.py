@@ -25,6 +25,7 @@ class SQLAlchemyAdapter(DatabaseAdapter):
         max_rows_per_query: int = 200,
         default_query_limit: int = 50,
         query_timeout_seconds: int = 15,
+        engine_kwargs: dict | None = None,
     ) -> None:
         self.connection_uri = connection_uri
         self.dialect = dialect
@@ -36,8 +37,13 @@ class SQLAlchemyAdapter(DatabaseAdapter):
             max_rows=max_rows_per_query,
             default_limit=default_query_limit,
         )
-        self._engine: Engine = create_engine(connection_uri, future=True)
 
+        kwargs = {"future": True}
+        if engine_kwargs:
+            kwargs.update(engine_kwargs)
+
+        self._engine: Engine = create_engine(connection_uri, **kwargs)
+        
     def list_tables(self) -> list[str]:
         inspector = inspect(self._engine)
         return sorted(inspector.get_table_names(schema=self.schema_name))
@@ -126,6 +132,9 @@ class SQLAlchemyAdapter(DatabaseAdapter):
                 "timeout_seconds": self.query_timeout_seconds,
             },
         )
+
+    def close(self) -> None:
+        self._engine.dispose()
 
     @staticmethod
     def _infer_description(table_name: str, column_names: list[str]) -> str:

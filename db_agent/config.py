@@ -3,13 +3,13 @@ from __future__ import annotations
 from functools import cached_property
 from pathlib import Path
 from typing import Literal
+import urllib.parse
 
 from pydantic import BaseModel, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 SupportedDialect = Literal["sqlite", "postgres", "mysql", "redshift"]
 SupportedEnvironment = Literal["dev", "test", "prod"]
-
 
 class DatabaseSettings(BaseModel):
     dialect: SupportedDialect = "sqlite"
@@ -43,8 +43,11 @@ class DatabaseSettings(BaseModel):
             raise ValueError(
                 f"Database settings for dialect={self.dialect!r} require either db.uri or host/port/username/database"
             )
-        password = self.password.get_secret_value() if self.password else ""
-        password_part = f":{password}" if password else ""
+            
+        password_raw = self.password.get_secret_value() if self.password else ""
+        password_encoded = urllib.parse.quote_plus(password_raw) if password_raw else ""
+        password_part = f":{password_encoded}" if password_encoded else ""
+            
         return f"{self.sqlalchemy_scheme}://{self.username}{password_part}@{self.host}:{self.port}/{self.database}"
 
 

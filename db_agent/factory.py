@@ -9,6 +9,7 @@ from .sqlite_adapter import SQLiteAdapter
 class UnsupportedDialectError(ValueError):
     pass
 
+from .postgres_adapter import PostgresAdapter
 
 def create_database_adapter(settings: AppSettings) -> DatabaseAdapter:
     if settings.db.dialect == "sqlite":
@@ -19,7 +20,19 @@ def create_database_adapter(settings: AppSettings) -> DatabaseAdapter:
             default_query_limit=settings.default_query_limit,
             query_timeout_seconds=settings.query_timeout_seconds,
         )
-    if settings.db.dialect in {"postgres", "mysql", "redshift"}:
+
+    if settings.db.dialect == "postgres":
+        return PostgresAdapter(
+            connection_uri=settings.db.build_connection_uri(),
+            database_name=settings.db.database,
+            schema_name=settings.db.schema_name,
+            max_sample_rows=settings.max_sample_rows,
+            max_rows_per_query=settings.max_rows_per_query,
+            default_query_limit=settings.default_query_limit,
+            query_timeout_seconds=settings.query_timeout_seconds,
+        )
+
+    if settings.db.dialect in {"mysql", "redshift"}:
         return SQLAlchemyAdapter(
             connection_uri=settings.db.build_connection_uri(),
             dialect=settings.db.dialect,
