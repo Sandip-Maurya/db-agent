@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 
 class EvidenceItem(BaseModel):
@@ -18,6 +18,8 @@ class AgentAnswer(BaseModel):
     answer: str = Field(description="Natural language answer to the user's question")
     assumptions: list[str] = Field(default_factory=list)
     evidence: list[EvidenceItem] = Field(default_factory=list)
-    sql_executed: str | None = Field(default=None, description="SQL used to answer the question, if any")
     confidence: Literal["low", "medium", "high"] = Field(default="medium")
     needs_followup: bool = Field(default=False)
+    db_query_executed: bool = Field(..., description="Whether sql is required to answer user question. True/False")
+    executed_sql: str | None = Field(default=None, description="SQL used to answer the question, if any")
+    

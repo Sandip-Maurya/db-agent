@@ -16,3 +16,5 @@ wheels/
 
 # ignore .env
 .env
+
+db_agent.egg-info/

@@ -1,107 +1,57 @@
 # db-agent
 
-`db-agent` is a read-only database analyst app built with Pydantic AI. It connects to a single configured database, exposes inspection/query tools to an agent, and lets you ask questions through either a CLI or a FastAPI service.
+`db-agent` is a read-only database analyst app built with Pydantic AI. Phase 5 adds a Streamlit UI on top of the existing FastAPI backend.
 
-## Naming and layout
+## What is included in phase 5
 
-- **Repository / project name:** `db-agent`
-- **Python package:** `db_agent`
-- **Source layout:** `src/db_agent/`
+- FastAPI backend health endpoint with configuration summary
+- table list endpoint and table-detail endpoint
+- Streamlit frontend for schema browsing and NL question answering
+- a small typed HTTP client for the Streamlit app
+- tests for the API contract and Streamlit client parsing
 
-Use `db_agent` for Python imports and `db-agent` for the installed CLI command.
+## Project layout
 
-## Features
-
-- single database connection per app instance
-- adapter/factory architecture for sqlite, postgres, mysql, and redshift
-- safe read-only querying with automatic `LIMIT` injection
-- pydantic-ai agent with typed dependencies and structured output
-- CLI and FastAPI entrypoints
-- smoke tests and demo scripts
-
-## Setup
-
-```bash
-pip install -e .
-python -m scripts.create_demo_db
+```text
+.db-agent/
+├─ db_agent/
+│  ├─ api.py
+│  └─ streamlit_settings.py
+├─ streamlit_app/
+│  ├─ app.py
+│  ├─ api_client.py
+│  ├─ state.py
+│  └─ ui_components.py
+├─ scripts/
+│  └─ run_streamlit.py
+└─ tests/
 ```
 
-## CLI
-
-Run the app either as a module or through the installed console script:
-
-```bash
-python -m db_agent --list-tables
-python -m db_agent --describe-table orders
-python -m db_agent --test-model "What is the orders table about?"
-
-db-agent --list-tables
-```
-
-With a real model configured:
-
-```bash
-export DB_AGENT_MODEL__PROVIDER_MODEL=openai:gpt-5-mini
-python -m db_agent "What currencies appear in orders?"
-```
-
-## FastAPI
+## Run the backend
 
 ```bash
 python -m scripts.run_api
 ```
 
-Then call:
-
-- `GET /health`
-- `GET /tables`
-- `POST /query`
-
-Example body:
-
-```json
-{"question": "What is the orders table about?", "use_test_model": true}
-```
-
-## Database configuration
-
-### SQLite
+## Run the Streamlit UI
 
 ```bash
-export DB_AGENT_DB__DIALECT=sqlite
-export DB_AGENT_DB__DATABASE=demo.db
+streamlit run streamlit_app/app.py
+# or
+python -m scripts.run_streamlit
 ```
 
-### Postgres / MySQL / Redshift
-
-Prefer a full URI:
+## UI environment variables
 
 ```bash
-export DB_AGENT_DB__DIALECT=postgres
-export DB_AGENT_DB__URI=postgresql+psycopg://user:pass@localhost:5432/mydb
+export DB_AGENT_UI_BACKEND_BASE_URL=http://127.0.0.1:8000
+export DB_AGENT_UI_REQUEST_TIMEOUT_SECONDS=30
+export DB_AGENT_UI_DEBUG=false
 ```
 
-You can also use component settings:
+## Suggested next cleanup after applying phase 5
 
-```bash
-export DB_AGENT_DB__HOST=localhost
-export DB_AGENT_DB__PORT=5432
-export DB_AGENT_DB__USERNAME=user
-export DB_AGENT_DB__PASSWORD=pass
-export DB_AGENT_DB__DATABASE=mydb
-```
-
-## Project structure
-
-```text
-src/db_agent/       Application package
-scripts/            Demo and runner scripts
-tests/              Smoke tests
-```
-
-## Development checks
-
-```bash
-python -m pytest -q
-python -m db_agent --help
-```
+- add a backend lifespan hook for adapter cleanup
+- tighten backend exception taxonomy
+- add route tests using dependency injection instead of cache mutation
+- expose query execution metadata in the structured API response when the agent returns it
