@@ -1,25 +1,24 @@
 from __future__ import annotations
 
-from requests import Response
+from requests import Response, Session
 from requests.structures import CaseInsensitiveDict
 
 from streamlit_app.api_client import DbAgentApiClient
 
 
-class DummySession:
+class DummySession(Session):
     def __init__(self, payload: dict, status_code: int = 200) -> None:
         self.payload = payload
         self.status_code = status_code
 
-    def request(self, method: str, url: str, timeout: float, **kwargs):  # noqa: ANN001
+    def request(self, method: str, url: str = "", params=None, data=None, headers=None, cookies=None, files=None, auth=None, timeout=None, allow_redirects=True, proxies=None, hooks=None, stream=None, verify=None, cert=None, json=None, **kwargs): # type: ignore
         response = Response()
         response.status_code = self.status_code
         response.headers = CaseInsensitiveDict({"Content-Type": "application/json"})
-        import json
+        import json as json_module
 
-        response._content = json.dumps(self.payload).encode("utf-8")
+        response._content = json_module.dumps(self.payload).encode("utf-8")
         return response
-
 
 
 def test_get_health_parses_response() -> None:
