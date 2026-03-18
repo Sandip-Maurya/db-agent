@@ -7,12 +7,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from src.agent_app import build_database_agent
-from src.agent_deps import AgentDeps
-from src.config import AppSettings
-from src.factory import create_database_adapter
-from src.services import SchemaExplorerService
-from src.tool_facade import DatabaseToolFacade
+from db_agent.agent_app import build_database_agent
+from db_agent.agent_deps import AgentDeps
+from db_agent.config import AppSettings
+from db_agent.factory import create_database_adapter
+from db_agent.services import SchemaExplorerService
+from db_agent.tool_facade import DatabaseToolFacade
 
 
 def build_deps() -> AgentDeps:

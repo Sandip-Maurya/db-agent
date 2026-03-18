@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pprint import pprint
 
-from src.app_runner import AgentApplication
-from src.bootstrap import build_app_container
+from db_agent.app_runner import AgentApplication
+from db_agent.bootstrap import build_app_container
 
 if __name__ == "__main__":
     app = AgentApplication(build_app_container())
