@@ -35,8 +35,6 @@ def configure_logging(settings: AppSettings) -> logging.Logger:
 def build_app_container(settings: AppSettings | None = None) -> AppContainer:
     settings = settings or AppSettings()
     print(settings)
-    # print(os.getcwd())
-    # raise SystemExit()
     logger = configure_logging(settings)
     adapter = create_database_adapter(settings)
     service = SchemaExplorerService(adapter)
