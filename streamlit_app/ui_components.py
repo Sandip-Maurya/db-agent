@@ -94,9 +94,9 @@ def render_agent_answer(answer: AgentAnswerPayload) -> None:
         else:
             st.write("No evidence items returned.")
 
-    with st.expander("Generated SQL", expanded=bool(answer.executed_sql)):
+    with st.expander("Generated SQL", expanded=answer.db_query_executed):
         if answer.db_query_executed:
-            st.code(answer.db_query_executed, language="sql")
+            st.code(answer.executed_sql, language="sql")
         else:
             st.write("No SQL was returned for this answer.")
 

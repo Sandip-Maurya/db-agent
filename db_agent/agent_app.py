@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import Agent, RunContext, ModelRetry
 
 from .agent_deps import AgentDeps
 from .agent_models import AgentAnswer
@@ -25,6 +25,7 @@ def build_database_agent(model: Any | None = None) -> Agent[AgentDeps, AgentAnsw
         deps_type=AgentDeps,
         output_type=AgentAnswer,
         instructions=BASE_INSTRUCTIONS,
+        retries=2,
     )
 
     @agent.instructions
@@ -61,10 +62,22 @@ def build_database_agent(model: Any | None = None) -> Agent[AgentDeps, AgentAnsw
         ctx.deps.logger.info("tool=sample_rows table=%s limit=%s", table_name, safe_limit)
         return ctx.deps.facade.sample_rows(table_name, limit=safe_limit).model_dump()
 
-    @agent.tool
+    @agent.tool(retries=2)
     def run_query(ctx: RunContext[AgentDeps], sql: str) -> dict[str, Any]:
         """Execute a read-only SQL query after the application's safety policy validates it."""
         ctx.deps.logger.info("tool=run_query sql=%s", sql.replace("\n", " "))
-        return ctx.deps.facade.run_query(sql).model_dump()
+        try:
+            return ctx.deps.facade.run_query(sql).model_dump()
+        except ValueError as exc:
+            message = str(exc)
 
+            if "no such column" in message.lower():
+                raise ModelRetry(
+                    "SQL failed because a referenced column does not exist. "
+                    "Before retrying, inspect the relevant table with describe_table "
+                    "and use the actual column names from the schema. "
+                    f"Original database error: {message}"
+                ) from exc
+
+            raise
     return agent
