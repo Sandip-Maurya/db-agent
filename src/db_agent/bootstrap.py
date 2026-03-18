@@ -35,6 +35,8 @@ def configure_logging(settings: AppSettings) -> logging.Logger:
 def build_app_container(settings: AppSettings | None = None) -> AppContainer:
     settings = settings or AppSettings()
     print(settings)
+    # print(os.getcwd())
+    # raise SystemExit()
     logger = configure_logging(settings)
     adapter = create_database_adapter(settings)
     service = SchemaExplorerService(adapter)
@@ -42,4 +44,3 @@ def build_app_container(settings: AppSettings | None = None) -> AppContainer:
     deps = AgentDeps.from_facade(settings=settings, facade=facade, logger=logger)
     agent = build_database_agent(model=settings.model.provider_model)
     return AppContainer(settings=settings, agent=agent, deps=deps, facade=facade, service=service)
-from .db_agent.bootstrap import *  # noqa: F401,F403

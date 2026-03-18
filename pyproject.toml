@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "db-agent"
 version = "0.1.0"
@@ -12,3 +16,13 @@ dependencies = [
   "sqlalchemy>=2.0.48",
   "fastapi>=0.135.1",
 ]
+
+[project.scripts]
+db-agent = "db_agent.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["db_agent", "db_agent.*", "db_agent_app", "db_agent_app.*"]
