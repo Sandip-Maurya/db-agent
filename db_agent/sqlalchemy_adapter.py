@@ -6,9 +6,10 @@ from typing import Any
 
 from sqlalchemy import MetaData, Table, create_engine, func, inspect, select, text
 from sqlalchemy.engine import Engine
+from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.exc import SQLAlchemyError
 
-from .domain import ColumnProfile, QueryResult, SchemaSnapshot, TableProfile
+from .domain import ColumnProfile, QueryResult, SchemaSnapshot, TableProfile, TableSummary
 from .ports import DatabaseAdapter
 from .safety import QuerySafetyPolicy
 
@@ -47,6 +48,76 @@ class SQLAlchemyAdapter(DatabaseAdapter):
     def list_tables(self) -> list[str]:
         inspector = inspect(self._engine)
         return sorted(inspector.get_table_names(schema=self.schema_name))
+
+    def list_table_summaries_light(self) -> list[TableSummary]:
+        inspector = inspect(self._engine)
+        names = sorted(inspector.get_table_names(schema=self.schema_name))
+        if not names:
+            return []
+        batch = self._list_table_summaries_from_multi_columns(inspector, names)
+        if batch is not None:
+            return batch
+        return self._list_table_summaries_light_per_table(inspector, names)
+
+    def _list_table_summaries_from_multi_columns(
+        self, inspector: Inspector, names: list[str]
+    ) -> list[TableSummary] | None:
+        try:
+            multi = inspector.get_multi_columns(
+                schema=self.schema_name, filter_names=names
+            )
+        except Exception:
+            return None
+        summaries: list[TableSummary] = []
+        for name in names:
+            columns = self._lookup_multi_columns(multi, self.schema_name, name)
+            if columns is None:
+                return None
+            col_names = [column["name"] for column in columns]
+            summaries.append(
+                TableSummary(
+                    name=name,
+                    description=self._infer_description(name, col_names),
+                    row_count_estimate=None,
+                    column_names=col_names,
+                )
+            )
+        return summaries
+
+    @staticmethod
+    def _lookup_multi_columns(
+        multi: dict[Any, Any], schema: str | None, table_name: str
+    ) -> list[dict[str, Any]] | None:
+        for key in ((schema, table_name), (None, table_name)):
+            if key in multi:
+                return multi[key]
+        for key, cols in multi.items():
+            if not isinstance(key, tuple) or len(key) != 2:
+                continue
+            sch, tbl = key
+            tbl_str = tbl if isinstance(tbl, str) else str(tbl)
+            if tbl_str != table_name:
+                continue
+            if schema is None or sch is None or sch == schema:
+                return cols
+        return None
+
+    def _list_table_summaries_light_per_table(
+        self, inspector: Inspector, names: list[str]
+    ) -> list[TableSummary]:
+        summaries: list[TableSummary] = []
+        for name in names:
+            columns = inspector.get_columns(name, schema=self.schema_name)
+            col_names = [column["name"] for column in columns]
+            summaries.append(
+                TableSummary(
+                    name=name,
+                    description=self._infer_description(name, col_names),
+                    row_count_estimate=None,
+                    column_names=col_names,
+                )
+            )
+        return summaries
 
     def get_table_profile(self, table_name: str) -> TableProfile:
         inspector = inspect(self._engine)

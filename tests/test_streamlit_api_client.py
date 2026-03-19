@@ -55,7 +55,8 @@ def test_ask_parses_structured_answer() -> None:
                     "answer": "Orders use INR and USD.",
                     "assumptions": [],
                     "evidence": [{"kind": "query", "detail": "Checked sample rows."}],
-                    "db_query_executed": "select distinct currency from orders limit 50",
+                    "db_query_executed": True,
+                    "executed_sql": "select distinct currency from orders limit 50",
                     "confidence": "high",
                     "needs_followup": False,
                 }
@@ -65,4 +66,5 @@ def test_ask_parses_structured_answer() -> None:
 
     response = client.ask("What currencies appear in orders?")
     assert response.answer.confidence == "high"
-    assert response.answer.db_query_executed is not None
+    assert response.answer.db_query_executed is True
+    assert response.answer.executed_sql == "select distinct currency from orders limit 50"

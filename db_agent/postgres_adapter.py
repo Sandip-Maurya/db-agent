@@ -38,7 +38,10 @@ class PostgresAdapter(SQLAlchemyAdapter):
             default_query_limit=default_query_limit,
             query_timeout_seconds=query_timeout_seconds,
             engine_kwargs={
+                # SQLAlchemy defaults (5/10) + pre_ping for long-lived API workers
                 "pool_pre_ping": True,
+                "pool_size": 5,
+                "max_overflow": 10,
                 "connect_args": connect_args,
             },
         )

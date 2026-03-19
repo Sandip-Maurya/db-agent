@@ -17,21 +17,23 @@ class DatabaseToolFacade:
         self.service = service
 
     def list_tables(self) -> ListTablesOutput:
-        snapshot = self.service.overview()
-        summaries = [
-            TableToolSummary(
-                name=table.name,
-                description=table.description,
-                row_count_estimate=table.row_count_estimate,
-                column_names=[column.name for column in table.columns],
-            )
-            for table in snapshot.tables
-        ]
+        adapter = self.service.adapter
+        dialect = getattr(adapter, "dialect", "unknown")
+        database_name = getattr(adapter, "database_name", "unknown")
+        summaries = self.service.list_table_summaries()
         return ListTablesOutput(
-            dialect=snapshot.dialect,
-            database_name=snapshot.database_name,
+            dialect=dialect,
+            database_name=database_name,
             table_count=len(summaries),
-            tables=summaries,
+            tables=[
+                TableToolSummary(
+                    name=table.name,
+                    description=table.description,
+                    row_count_estimate=table.row_count_estimate,
+                    column_names=table.column_names,
+                )
+                for table in summaries
+            ],
         )
 
     def describe_table(self, table_name: str) -> DescribeTableOutput:

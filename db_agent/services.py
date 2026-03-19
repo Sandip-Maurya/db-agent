@@ -14,16 +14,7 @@ class SchemaExplorerService:
         return self.adapter.get_schema_snapshot()
 
     def list_table_summaries(self) -> list[TableSummary]:
-        snapshot = self.overview()
-        return [
-            TableSummary(
-                name=table.name,
-                description=table.description,
-                row_count_estimate=table.row_count_estimate,
-                column_names=[column.name for column in table.columns],
-            )
-            for table in snapshot.tables
-        ]
+        return self.adapter.list_table_summaries_light()
 
     def describe_table(self, table_name: str) -> TableProfile:
         return self.adapter.get_table_profile(table_name)

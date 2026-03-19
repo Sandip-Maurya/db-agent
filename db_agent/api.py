@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from functools import lru_cache
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from .agent_models import AgentAnswer
@@ -10,7 +10,10 @@ from .app_runner import AgentApplication
 from .bootstrap import build_app_container
 from .config import AppSettings
 from .domain import TableProfile
+from .tables_list_cache import TTLCache
 from .tool_models import ListTablesOutput
+
+TABLES_LIST_CACHE_TTL_SECONDS = 300.0
 
 
 class HealthResponse(BaseModel):
@@ -39,29 +42,55 @@ class QueryResponse(BaseModel):
     answer: AgentAnswer
 
 
-@lru_cache(maxsize=1)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    settings = AppSettings()
+    container = build_app_container(settings)
+    app.state.settings = settings
+    app.state.application = AgentApplication(container)
+    app.state.tables_list_cache = TTLCache[ListTablesOutput](
+        ttl_seconds=TABLES_LIST_CACHE_TTL_SECONDS
+    )
+
+    try:
+        yield
+    finally:
+        container.close()
+
+
+app = FastAPI(title="db-agent", version="0.5.0", lifespan=lifespan)
+
+
 def get_application() -> AgentApplication:
-    return AgentApplication(build_app_container())
+    return app.state.application
 
 
-@lru_cache(maxsize=1)
 def get_settings() -> AppSettings:
-    return AppSettings()
+    return app.state.settings
 
 
-app = FastAPI(title="db-agent", version="0.5.0")
+def _tables_list_cache(request: Request) -> TTLCache[ListTablesOutput]:
+    """Return app-scoped cache; lazy-init if lifespan did not run (e.g. some tests)."""
+    state = request.app.state
+    cache = getattr(state, "tables_list_cache", None)
+    if cache is None:
+        cache = TTLCache[ListTablesOutput](ttl_seconds=TABLES_LIST_CACHE_TTL_SECONDS)
+        state.tables_list_cache = cache
+    return cache
 
 
 @app.get("/health", response_model=HealthResponse)
-def health() -> HealthResponse:
-    settings = get_settings()
-    overview = get_application().container.facade.list_tables()
+def health(
+    settings: AppSettings = Depends(get_settings),
+    application: AgentApplication = Depends(get_application),
+) -> HealthResponse:
+    adapter = application.container.adapter
     return HealthResponse(
         status="ok",
         app_name=settings.app_name,
         environment=settings.environment,
-        dialect=overview.dialect,
-        database_name=overview.database_name,
+        dialect=getattr(adapter, "dialect", "unknown"),
+        database_name=getattr(adapter, "database_name", "unknown"),
         default_query_limit=settings.default_query_limit,
         max_rows_per_query=settings.max_rows_per_query,
         max_sample_rows=settings.max_sample_rows,
@@ -69,14 +98,22 @@ def health() -> HealthResponse:
 
 
 @app.get("/tables", response_model=ListTablesOutput)
-def tables() -> ListTablesOutput:
-    application = get_application()
-    return application.container.facade.list_tables()
+def tables(
+    request: Request,
+    application: AgentApplication = Depends(get_application),
+) -> ListTablesOutput:
+    cache = _tables_list_cache(request)
+
+    def load() -> ListTablesOutput:
+        return application.container.facade.list_tables()
+
+    return cache.get_or_set(load)
 
 
 @app.get("/tables/{table_name}", response_model=TableProfile)
-def table_detail(table_name: str) -> TableProfile:
-    application = get_application()
+def table_detail(
+    table_name: str, application: AgentApplication = Depends(get_application)
+) -> TableProfile:
     try:
         return application.container.facade.describe_table(table_name).profile
     except ValueError as exc:
@@ -84,9 +121,9 @@ def table_detail(table_name: str) -> TableProfile:
 
 
 @app.post("/query", response_model=QueryResponse)
-def query(request: QueryRequest) -> QueryResponse:
-    application = get_application()
-
+def query(
+    request: QueryRequest, application: AgentApplication = Depends(get_application)
+) -> QueryResponse:
     try:
         answer = (
             application.ask_with_test_model(request.question)
@@ -95,7 +132,7 @@ def query(request: QueryRequest) -> QueryResponse:
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise HTTPException(status_code=500, detail="Unexpected query failure") from exc
 
     return QueryResponse(answer=answer)

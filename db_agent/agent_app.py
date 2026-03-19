@@ -31,6 +31,7 @@ def build_database_agent(model: Any | None = None) -> Agent[AgentDeps, AgentAnsw
     @agent.instructions
     def runtime_instructions(ctx: RunContext[AgentDeps]) -> str:
         settings = ctx.deps.settings
+        ctx.deps.ensure_allowed_tables()
         allowed = ", ".join(ctx.deps.allowed_tables) if ctx.deps.allowed_tables else "none"
         return (
             f"Database dialect: {settings.db.dialect}. "

@@ -38,8 +38,14 @@ class DummyFacade:
         )
 
 
+class DummyAdapter:
+    dialect = "sqlite"
+    database_name = "demo.db"
+
+
 class DummyContainer:
     def __init__(self) -> None:
+        self.adapter = DummyAdapter()
         self.facade = DummyFacade()
 
 
@@ -48,10 +54,18 @@ class DummyApplication:
         self.container = DummyContainer()
 
     def ask(self, question: str) -> AgentAnswer:
-        return AgentAnswer(answer=f"Answer for: {question}", confidence="high")
+        return AgentAnswer(
+            answer=f"Answer for: {question}",
+            confidence="high",
+            db_query_executed=False,
+        )
 
     def ask_with_test_model(self, question: str) -> AgentAnswer:
-        return AgentAnswer(answer=f"Test answer for: {question}", confidence="medium")
+        return AgentAnswer(
+            answer=f"Test answer for: {question}",
+            confidence="medium",
+            db_query_executed=False,
+        )
 
 
 app.dependency_overrides[get_application] = lambda: DummyApplication()
@@ -66,6 +80,15 @@ def test_health_returns_backend_summary() -> None:
     assert payload["status"] == "ok"
     assert payload["dialect"] == "sqlite"
 
+
+def test_tables_list_endpoint() -> None:
+    response = client.get("/tables")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["dialect"] == "sqlite"
+    assert payload["table_count"] == 1
+    assert payload["tables"][0]["name"] == "orders"
+    assert payload["tables"][0]["column_names"] == ["order_id", "currency"]
 
 
 def test_table_detail_endpoint() -> None:

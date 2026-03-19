@@ -11,7 +11,7 @@ load_dotenv()
 from .agent_app import build_database_agent
 from .agent_deps import AgentDeps
 from .config import AppSettings
-from .factory import create_database_adapter
+from .factory import create_database_adapter, DatabaseAdapter
 from .services import SchemaExplorerService
 from .tool_facade import DatabaseToolFacade
 from x_model import model
@@ -19,10 +19,14 @@ from x_model import model
 @dataclass(slots=True)
 class AppContainer:
     settings: AppSettings
+    adapter: DatabaseAdapter
     agent: Any
     deps: AgentDeps
     facade: DatabaseToolFacade
     service: SchemaExplorerService
+
+    def close(self) -> None:
+        self.adapter.close()
 
 
 def configure_logging(settings: AppSettings) -> logging.Logger:
@@ -41,4 +45,11 @@ def build_app_container(settings: AppSettings | None = None) -> AppContainer:
     facade = DatabaseToolFacade(service)
     deps = AgentDeps.from_facade(settings=settings, facade=facade, logger=logger)
     agent = build_database_agent(model=model)
-    return AppContainer(settings=settings, agent=agent, deps=deps, facade=facade, service=service)
+    return AppContainer(
+        settings=settings,
+        adapter=adapter,
+        agent=agent,
+        deps=deps,
+        facade=facade,
+        service=service,
+    )

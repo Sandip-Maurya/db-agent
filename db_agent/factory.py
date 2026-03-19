@@ -42,5 +42,10 @@ def create_database_adapter(settings: AppSettings) -> DatabaseAdapter:
             max_rows_per_query=settings.max_rows_per_query,
             default_query_limit=settings.default_query_limit,
             query_timeout_seconds=settings.query_timeout_seconds,
+            engine_kwargs={
+                "pool_pre_ping": True,
+                "pool_size": 5,
+                "max_overflow": 10,
+            },
         )
     raise UnsupportedDialectError(f"Unsupported dialect: {settings.db.dialect}")
